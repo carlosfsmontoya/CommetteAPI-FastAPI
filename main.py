@@ -6,6 +6,8 @@ from models.Userlogin import UserRegister
 
 # Importa las funciones para manejar el inicio de sesión y la autenticación de Office 365 desde el módulo controllers.o365.
 from controllers.o365 import login_o365, auth_callback_o365  
+from controllers.google import login_google , auth_callback_google
+from controllers.firebase import register_user_firebase, login_user_firebase
 
 # Importa el middleware CORS para manejar el intercambio de recursos entre orígenes (CORS).
 from fastapi.middleware.cors import CORSMiddleware  
@@ -50,6 +52,25 @@ async def user(request: Request):
     return {
         "email": request.state.email  # Devuelve el email del usuario desde el estado de la solicitud.
     }  
+
+
+@app.get("/login/google")
+async def logingoogle():
+    return await login_google()
+
+@app.get("/auth/google/callback")
+async def authcallbackgoogle(request: Request):
+    return await auth_callback_google(request)
+
+
+@app.post("/register")
+async def register(user: UserRegister):
+    return await register_user_firebase(user)
+
+@app.post("/login/custom")
+async def login_custom(user: UserRegister):
+    return await login_user_firebase(user)
+
 
 # Ejecuta la aplicación FastAPI usando uvicorn si el script se ejecuta directamente.
 if __name__ == "__main__":  
