@@ -8,7 +8,7 @@ from models.Userlogin import UserRegister
 from controllers.o365 import login_o365, auth_callback_o365  
 from controllers.google import login_google , auth_callback_google
 from controllers.firebase import register_user_firebase, login_user_firebase
-
+from controllers.card import execute_query
 # Importa el middleware CORS para manejar el intercambio de recursos entre orígenes (CORS).
 from fastapi.middleware.cors import CORSMiddleware  
 
@@ -71,6 +71,10 @@ async def register(user: UserRegister):
 async def login_custom(user: UserRegister):
     return await login_user_firebase(user)
 
+@app.get("/cards")
+async def cards(request: Request, response: Response):
+    response.headers["Cache-Control"] = "no-cache"
+    return await execute_query("SELECT * FROM [commette].[cards]")
 
 # Ejecuta la aplicación FastAPI usando uvicorn si el script se ejecuta directamente.
 if __name__ == "__main__":  

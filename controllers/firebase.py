@@ -37,7 +37,7 @@ async def register_user_firebase(user: UserRegister):
         cursor = conn.cursor()
         try:
             cursor.execute(
-                "EXEC otd.create_user @username = ?, @name = ?, @email = ?",
+                "EXEC commette.create_user @username = ?, @name = ?, @email = ?",
                 user_record.uid,
                 user.name,
                 user.email
@@ -80,7 +80,7 @@ async def login_user_firebase(user: UserRegister):
                 detail=f"Error al autenticar usuario: {response_data['error']['message']}"
             )
 
-        query = f"SELECT active FROM otd.users WHERE email = '{user.email}'"
+        query = f"SELECT active FROM commette.users WHERE email = '{user.email}'"
 
         try:
             logger.info(f"QUERY LIST")
