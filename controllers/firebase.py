@@ -12,8 +12,8 @@ import firebase_admin
 from firebase_admin import credentials, auth as firebase_auth
 from utils.database import fetch_query_as_json, get_db_connection
 from utils.security import create_jwt_token
-from models.Userlogin import UserRegister
-
+from models.UserRegister import UserRegister
+from models.UserLogin import UserLogin
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -61,7 +61,7 @@ async def register_user_firebase(user: UserRegister):
             detail=f"Error al registrar usuario: {e}"
         )
 
-async def login_user_firebase(user: UserRegister):
+async def login_user_firebase(user: UserLogin):
     try:
         # Autenticar usuario con Firebase Authentication usando la API REST
         api_key = os.getenv("FIREBASE_API_KEY")  # Reemplaza esto con tu apiKey de Firebase

@@ -2,7 +2,8 @@
 from fastapi import FastAPI, Request, Response  
 
 # Importa el modelo UserRegister desde el módulo models.Userlogin.
-from models.Userlogin import UserRegister  
+from models.UserRegister import UserRegister
+from models.UserLogin import UserLogin
 
 # Importa las funciones para manejar el inicio de sesión y la autenticación de Office 365 desde el módulo controllers.o365.
 from controllers.o365 import login_o365, auth_callback_o365  
@@ -68,7 +69,7 @@ async def register(user: UserRegister):
     return await register_user_firebase(user)
 
 @app.post("/login/custom")
-async def login_custom(user: UserRegister):
+async def login_custom(user: UserLogin):
     return await login_user_firebase(user)
 
 @app.get("/cards")
