@@ -9,6 +9,8 @@ class UserRegister(BaseModel):
     password: str
     firstname: str
     lastname: str
+    username: str  # Añadido para incluir el nombre de usuario
+    companyName: Optional[str] = None  # Opcional para incluir el nombre de la empresa si es necesario
 
     @validator('password')
     def password_validation(cls, value):
@@ -26,14 +28,7 @@ class UserRegister(BaseModel):
 
         return value
 
-    @validator('firstname')
-    def name_validation(cls, value):
-        if validate_sql_injection(value):
-            raise ValueError('Invalid name')
-
-        return value
-
-    @validator('lastname')
+    @validator('firstname', 'lastname')
     def name_validation(cls, value):
         if validate_sql_injection(value):
             raise ValueError('Invalid name')
@@ -45,4 +40,23 @@ class UserRegister(BaseModel):
         if not re.match(r"[^@]+@[^@]+\.[^@]+", value):
             raise ValueError('Invalid email address')
 
+        return value
+
+    @validator('username')
+    def username_validation(cls, value):
+        if validate_sql_injection(value):
+            raise ValueError('Invalid username')
+        
+        if len(value) < 3:
+            raise ValueError('Username must be at least 3 characters long')
+
+        if not re.match(r'^[a-zA-Z0-9_]+$', value):
+            raise ValueError('Username can only contain alphanumeric characters and underscores')
+
+        return value
+
+    @validator('companyName', always=True)
+    def company_name_validation(cls, value, values):
+        if values.get('is_seller') and not value:
+            raise ValueError('Company name must be provided for sellers')
         return value

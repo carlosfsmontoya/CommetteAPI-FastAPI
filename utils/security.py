@@ -16,6 +16,7 @@ load_dotenv()
 
 # Obtiene la clave secreta desde las variables de entorno.
 SECRET_KEY = os.getenv("SECRET_KEY")  
+SECRET_KEY_FUNC = os.getenv("SECRET_KEY_FUNC")
 
 # Define una función para generar un PKCE verifier utilizando tokens seguros.
 def generate_pkce_verifier():  
@@ -30,72 +31,123 @@ def generate_pkce_challenge(verifier):
     return base64.urlsafe_b64encode(digest).rstrip(b'=').decode('ascii')  
 
 # Define una función para crear un JWT (JSON Web Token).
-def create_jwt_token(email: str, active: bool):  
-    # Define la fecha y hora de expiración del token, que es 1 hora desde la creación.
-    expiration = datetime.utcnow() + timedelta(hours=1)  
-    # Codifica el payload del token con la clave secreta usando el algoritmo HS256.
+def create_jwt_token(id_user: int, firstname: str, lastname: str, email: str, role: str, active: bool):
+    expiration = datetime.utcnow() + timedelta(hours=1)  # El token expira en 1 hora
     token = jwt.encode(
         {
-            "email": email,  # Incluye el email del usuario en el payload.
-            "exp": expiration,  # Incluye la fecha de expiración del token en el payload.
-            "active": active,  # Incluye el estado de actividad del usuario en el payload.
-            "iat": datetime.utcnow()  # Incluye la fecha y hora de emisión del token.
+            "id_user": id_user,
+            "firstname": firstname,
+            "lastname": lastname,
+            "email": email,
+            "role": role,
+            "active": active,
+            "exp": expiration,
+            "iat": datetime.utcnow()
         },
-        SECRET_KEY,  # Usa la clave secreta para firmar el token.
-        algorithm="HS256"  # Especifica el algoritmo de firma.
-    )  
-    # Devuelve el token codificado.
-    return token  
+        SECRET_KEY,
+        algorithm="HS256"
+    )
+    return token
 
 # Define un decorador para validar un JWT en las peticiones.
-def validate(func):  
-    # Define una función interna para validar el JWT y ejecutar la función original.
-    @wraps(func)  
-    async def wrapper(*args, **kwargs):  
-        # Obtiene el objeto request de los argumentos de la función.
-        request = kwargs.get('request')  
-        if not request:  
-            # Lanza una excepción si no se encuentra el objeto request.
-            raise HTTPException(status_code=400, detail="Request object not found")  
+def validate(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        request = kwargs.get('request')
+        if not request:
+            raise HTTPException(status_code=400, detail="Request object not found")
 
-        # Obtiene el encabezado de autorización de la petición.
-        authorization: str = request.headers.get("Authorization")  
-        if not authorization:  
-            # Lanza una excepción si el encabezado de autorización está ausente.
-            raise HTTPException(status_code=403, detail="Authorization header missing")  
+        authorization: str = request.headers.get("Authorization")
+        if not authorization:
+            raise HTTPException(status_code=400, detail="Authorization header missing")
 
-        try:  
-            # Divide el encabezado de autorización en esquema y token.
-            scheme, token = authorization.split()  
-            if scheme.lower() != "bearer":  
-                # Lanza una excepción si el esquema de autorización no es Bearer.
-                raise HTTPException(status_code=403, detail="Invalid authentication scheme")  
+        scheme, token = authorization.split()
+        if scheme.lower() != "bearer":
+            raise HTTPException(status_code=400, detail="Invalid authentication scheme")
 
-            # Decodifica el token usando la clave secreta y el algoritmo HS256.
-            payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])  
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
 
-            # Obtiene los datos del payload del token.
-            email = payload.get("email")  
-            expired = payload.get("exp")  
-            active = payload.get("active")  
-            if email is None or expired is None or active is None:  
-                # Lanza una excepción si faltan datos en el payload.
-                raise HTTPException(status_code=403, detail="Invalid token")  
+            id_user = payload.get("id_user")
+            email = payload.get("email")
+            expired = payload.get("exp")
+            active = payload.get("active")
+            firstname = payload.get("firstname")
+            lastname = payload.get("lastname")
+            role = payload.get("role")
 
-            if datetime.utcfromtimestamp(expired) < datetime.utcnow():  
-                # Lanza una excepción si el token ha expirado.
-                raise HTTPException(status_code=403, detail="Expired token")  
+            if id_user is None or email is None or expired is None or active is None or role is None:
+                raise HTTPException(status_code=400, detail="Invalid token")
 
-            if not active:  
-                # Lanza una excepción si el usuario está inactivo.
-                raise HTTPException(status_code=403, detail="Inactive user")  
+            if datetime.utcfromtimestamp(expired) < datetime.utcnow():
+                raise HTTPException(status_code=401, detail="Expired token")
 
-            # Inyecta el email del usuario en el objeto request para su uso posterior.
-            request.state.email = email  
-        except PyJWTError:  
-            # Lanza una excepción si ocurre un error al decodificar el token.
-            raise HTTPException(status_code=403, detail="Invalid token or expired token")  
+            if not active:
+                raise HTTPException(status_code=403, detail="Inactive user")
 
-        # Llama a la función original con los argumentos dados.
-        return await func(*args, **kwargs)  
-    return wrapper  # Devuelve el decorador.
+            # Inyectar los valores en el objeto request
+            request.state.id_user = id_user
+            request.state.email = email
+            request.state.firstname = firstname
+            request.state.lastname = lastname
+            request.state.role = role
+        except PyJWTError:
+            raise HTTPException(status_code=401, detail="Invalid token or expired token")
+
+        return await func(*args, **kwargs)
+    return wrapper
+
+
+def validate_for_inactive(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        request = kwargs.get('request')
+        if not request:
+            raise HTTPException(status_code=400, detail="Request object not found")
+
+        authorization: str = request.headers.get("Authorization")
+        if not authorization:
+            raise HTTPException(status_code=400, detail="Authorization header missing")
+
+        try:
+            scheme, token = authorization.split()
+            if scheme.lower() != "bearer":
+                raise HTTPException(status_code=400, detail="Invalid authentication scheme")
+
+            payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+
+            email = payload.get("email")
+            expired = payload.get("exp")
+
+            if email is None or expired is None:
+                raise HTTPException(status_code=400, detail="Invalid token")
+
+            if datetime.utcfromtimestamp(expired) < datetime.utcnow():
+                raise HTTPException(status_code=401, detail="Expired token")
+
+
+
+            # Inyectar el email en el objeto request
+            request.state.email = email
+        except PyJWTError:
+            raise HTTPException(status_code=403, detail="Invalid token or expired token")
+
+        return await func(*args, **kwargs)
+    return wrapper
+
+def validate_func(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        request = kwargs.get('request')
+        if not request:
+            raise HTTPException(status_code=400, detail="Request object not found")
+
+        authorization: str = request.headers.get("Authorization")
+        if not authorization:
+            raise HTTPException(status_code=403, detail="Authorization header missing")
+
+        if authorization != SECRET_KEY_FUNC:
+            raise HTTPException(status_code=403, detail="Wrong function key")
+
+        return await func(*args, **kwargs)
+    return wrapper

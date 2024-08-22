@@ -4,9 +4,11 @@ import pyodbc
 import logging
 import json
 
+from decimal import Decimal
+import json
+
 load_dotenv()
 
-# Configurar logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -43,7 +45,8 @@ async def fetch_query_as_json(query, is_procedure=False):
         results = []
         logger.info(f"Columns: {columns}")
         for row in cursor.fetchall():
-            results.append(dict(zip(columns, row)))
+            row_dict = dict(zip(columns, row))
+            results.append(decimal_to_float(row_dict))
 
         return json.dumps(results)
 
@@ -52,3 +55,14 @@ async def fetch_query_as_json(query, is_procedure=False):
     finally:
         cursor.close()
         conn.close()
+
+
+def decimal_to_float(obj):
+    if isinstance(obj, Decimal):
+        return float(obj)
+    elif isinstance(obj, dict):
+        return {k: decimal_to_float(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [decimal_to_float(i) for i in obj]
+    else:
+        return obj

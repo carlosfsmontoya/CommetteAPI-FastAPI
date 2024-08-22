@@ -1,0 +1,20 @@
+# Ignorar el entorno virtual
+venv/
+
+# Ignorar archivos de configuración específicos del entorno
+.env
+
+# Ignorar archivos de caché y temporales
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+
+# Ignorar archivos de control de versiones
+.git
+.gitignore
+
+# Ignorar archivos de logs
+*.log
