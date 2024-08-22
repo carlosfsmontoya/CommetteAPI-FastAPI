@@ -13,3 +13,4 @@ sqlalchemy==2.0.31
 azure-storage-queue==12.11.0
 azure-storage-blob==12.22.0
 aiofiles==24.1.0
+pymssql==2.3.0
